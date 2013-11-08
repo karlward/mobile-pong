@@ -1,0 +1,214 @@
+	<!DOCTYPE html>  
+      
+    <html>  
+      <head>  
+        <title>Mobile-Pong</title>  
+        <meta charset="utf-8">  
+      
+        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>  
+			  <script src="/socket.io/socket.io.js"></script>  
+    	
+	  
+        <script>  
+
+        var socket = io.connect('http://ec2-54-200-79-16.us-west-2.compute.amazonaws.com:8080/');
+
+          socket.on('connect', function(){
+                id = socket.socket.sessionid;
+                   //console.log("Connected : " + socket.socket.sessionid);
+          });
+
+          socket.on('news', function (data) {
+              if(data.type == "display"){
+                //displayPong();
+                document.getElementById("log").innerHTML = "If two players are all ready, press the button.";
+
+              }else if(data.type == "player1" || data.type == "player2"){
+                playerInit();
+              } 
+          });
+
+        var playerInit = function(){
+
+            //ready to grab Accelerometer data
+
+        };
+
+        var init = function(){
+
+          var canvas = document.getElementById("myCanvas");
+          var ctx = canvas.getContext('2d');
+
+          var WIDTH = canvas.width;
+          var HEIGHT = canvas.height;
+
+          // canvas 
+
+          var intervalId;
+          //If you want to move ball fast, make gameSpeed down! 
+          var gameSpeed = 30;
+
+          var players = [];
+          //sample player object
+          var player1 = {
+
+            id : "player1",
+            x :  WIDTH / 2,
+            y :  20,
+            w :  75,
+            h :  20,
+            vel : 5,
+            score : 0
+          };
+
+          var player2 = {
+            
+            id : "player2",
+            x :  WIDTH / 2 - 50,
+            y :  HEIGHT - 40,
+            w :  75,
+            h :  20, 
+            vel : 5,
+            score : 0
+          };
+
+          players.push(player1);
+          players.push(player2);
+          console.log(players.length);
+          var moveRight = false;
+          var moveleft = false;
+
+          //ball object
+
+          var ball = {
+            x : 150,
+            y : 150,
+            dx : 2,
+            dy : 4,
+            radius : 10
+          };
+
+          var drawBall = function(x,y,r){
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI*2, true);
+            ctx.closePath();
+            ctx.fillStyle = "#ffffff";
+            ctx.fill();
+          };
+
+          var updateBall = function(){
+
+            if (ball.x + ball.dx + ball.radius > WIDTH || ball.x + ball.dx - ball.radius < 0)
+              
+              ball.dx = -ball.dx;
+
+            if (ball.y + ball.dy - ball.radius <= player1.h) {
+              
+              if (ball.x <= player1.x || ball.x >= player1.x + player1.w) {
+                ball.x = WIDTH/2;
+                ball.y = HEIGHT/2;
+                player2.score++;
+                
+              }else {
+                ball.dy = -ball.dy;
+              }
+              
+            }  
+
+            if (ball.y + ball.dy + ball.radius > HEIGHT-player2.h) {
+              
+              if (ball.x <= player2.x || ball.x >= player2.x + player2.w) {
+                ball.x = WIDTH/2;
+                ball.y = HEIGHT/2;
+                player1.score++;
+                
+              }else {
+                ball.dy = -ball.dy;
+              }
+              
+            }  
+
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+      
+          };
+
+          var updatePaddle = function(data){
+        
+            for(var i = 0 ; i < players.length ; i ++ ){
+              if(players[i].id == data.id){
+       
+                  if(data.direction == "right"){
+       
+                    players[i].x += players[i].vel;
+       
+                  }else if(data.direction == "left"){
+       
+                    players[i].x -= players[i].vel;
+
+                  }
+
+                  //Boundary Check! 
+                  if(players[i].x <0){
+                    
+                      players[i].x = 0;
+              
+                  }else if(players[i].x > (WIDTH-players[i].w)){
+                    
+                      players[i].x = WIDTH-players[i].w;
+                  }
+                }
+              }
+          }; 
+
+          var drawBackground = function(){
+            ctx.fillStyle = "#0000FF";
+            ctx.fillRect(0,0,WIDTH,HEIGHT);
+          };
+
+          var drawPlayerPaddle = function(id,x,y,w,h){
+            
+            ctx.beginPath();
+            ctx.rect(x,y,w,h);
+            ctx.closePath();
+            //ctx.fillStyle = "#00ff00";
+            ctx.fill(); 
+            //console.log("draw Rect is working!");
+          }; 
+
+          function draw(){
+
+            //fake paddle movement for debugging 
+            var tempData1 = {id:"player1", direction:"left"};
+            //var tempData2 = {id:"player2", direction:"left"};
+
+
+            updatePaddle(tempData1);
+            //updatePaddle(tempData2);
+   
+            updateBall();
+            drawBackground();
+            drawBall( ball.x, ball.y, ball.radius);
+            drawPlayerPaddle( player1.id, player1.x, player1.y, player1.w, player1.h);
+            drawPlayerPaddle( player2.id, player2.x, player2.y, player2.w, player2.h);
+
+            document.getElementById("log").innerHTML = "Player 1: "+ player1.score + " |  player 2: "+player2.score;
+          }
+
+          // looping animation 
+          var intervalId = setInterval(draw, gameSpeed); 
+
+      };
+
+      </script>  
+      </head>  
+      
+      <body>   
+        <div id = "log"></div>
+        <button id = "play" onclick = "init();">play</button>
+        <br/>
+            <canvas id="myCanvas" width="720" height="550">  
+                <!-- Insert fallback content here -->  
+            </canvas>  
+      </body>  
+    </html>  
