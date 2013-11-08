@@ -1,0 +1,91 @@
+<html>
+	<head>
+		<script src="/socket.io/socket.io.js"></script>
+		<script type="text/javascript">
+	
+			var socket = io.connect('http://ec2-54-200-18-209.us-west-2.compute.amazonaws.com:8080/');
+			
+			var myId;
+			var allPlayers = [];
+
+			socket.on('connect', function() {
+				console.log('connected');
+
+			});
+
+			socket.on('createMe', function(data){
+			   //console.log('created my ball with id:'+data);
+			   myId = data;
+			   socket.emit('createOthers', myId);
+			   console.log('created my user with id: '+myId);
+
+			});
+
+			socket.on('createOthers', function(data){
+
+				if(!data || data === myId) {
+					return;
+				}
+				console.log('created other user with id: '+data);		
+			});
+
+			var isBrowserSafari = function(){
+				if(window.DeviceMotionEvent == undefined){
+					var warning = document.createElement("h1");
+					var textNode = document.createTextNode("Your browser doesn't support accelerometer reading");
+					warning.appendChild(textNode);
+					document.body.appendChild(warning);
+
+				}
+			}
+
+			// ***************accelerometer reading*************
+			if (window.DeviceMotionEvent != undefined) {
+
+				window.ondevicemotion = function(e) {
+					ax = event.accelerationIncludingGravity.x * 5;
+					ay = event.accelerationIncludingGravity.y * 5;
+
+				}
+
+				setInterval( function() {
+					var landscapeOrientation = window.innerWidth/window.innerHeight > 1;
+					if ( landscapeOrientation) {
+						vx = vx + ay;
+						vy = vy + ax;
+					} else {
+						vy = vy - ay;
+						vx = vx + ax;
+					}
+					vx = vx * 0.98;
+					vy = vy * 0.98;
+					// y = parseInt(y + vy / 50);
+					y = 100;
+					x = parseInt(x + vx / 50);
+					
+					boundingBoxCheck();
+					
+					// sphere.style.top = y + "px";
+					// sphere.style.left = x + "px";
+					
+				}, 25);
+			} 
+
+			var boundingBoxCheck = function(){
+				if (x<0) { x = 0; }
+				if (y<0) { y = 0; }
+				if (x>document.documentElement.clientWidth-20) { x = document.documentElement.clientWidth-20; }
+				if (y>document.documentElement.clientHeight-20) { y = document.documentElement.clientHeight-20; }
+						}
+
+			// ***************Player Setting*************
+
+		
+
+		</script>	
+	</head>
+	<body >
+		iphone node js test.
+	</body onload = "isBrowserSafari();">
+		<canvas id="canvas" />	
+</html>
