@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Mobile Pong</title>
+
+<script src="http://192.168.1.10:8080/socket.io/socket.io.js"></script>
+<script type="text/javascript">
+  var server = '192.168.1.10';
+  var port = '8080';
+  var socket = io.connect(server + ':' + port);
+  var socketId = null;
+  var player = null; // whether player1 or player2, unset until we know we are a player
+  var oldMove = null; // keep track of previous movement state, unset until first move
+  
+  socket.on('connect', function(){
+    socketId = socket.socket.sessionid;
+    //console.log("Connected : " + socket.socket.sessionid);
+  });
+
+  socket.on('players', function (data) {
+    console.log('players data: ' + JSON.stringify(data));
+    if (data.socketId === socketId){
+      console.log("this browser is " + data.type);
+      player = data.type;
+      document.getElementById("log").innerHTML = "<h1>you are " + player + "</h1>";
+    } 
+  });
+  
+  var sendMove = function(direction) {
+    socket.emit('move', {"id": player, "direction": direction});
+    oldMove = direction;
+  };
+  
+  var handleOrientationEvent = function(e) {
+    // Get the orientation of the device in 3 axes, known as alpha, beta, and gamma, 
+    // represented in degrees from the initial orientation of the device on load
+
+    // FIXME: correct for orientation of device (sideways, etc.)?
+    var alpha = e.alpha; // we care about gamma only
+    var beta = e.beta;
+    var gamma = e.gamma;
+    console.log('a: ' + alpha + 'b: ' + beta + 'g: ' + gamma);
+    var a = document.getElementById('alpha');
+    a.innerHTML = alpha;
+    var b = document.getElementById('beta');
+    b.innerHTML = beta;
+    var g = document.getElementById('gamma');
+    g.innerHTML = gamma;
+    
+    if ((gamma > 0) && ((oldMove === 'right') || oldMove === null)) {
+      sendMove('left');
+    }
+    else if ((gamma < 0) && ((oldMove === 'left') || (oldMove === null))) {
+      sendMove('right');
+    }
+  };
+
+  // Listen for changes to the device orientation using the gyroscope and fire the event 
+  // handler accordingly
+  window.addEventListener('deviceorientation', handleOrientationEvent, false);
+</script>
+</head>
+<body>
+  <div id="log"></div>
+  <button id="left" onclick="sendMove('left');">left</button>
+  <button id="right" onclick="sendMove('right');">right</button>
+  <canvas id="myCanvas" width="720" height="550" style="display: none;"></canvas>
+  <ul>
+    <li>alpha: <span id="alpha"></span></li>
+    <li>beta: <span id="beta"></span></li>
+    <li>gamma: <span id="gamma"></span></li>
+  </ul>
+</body>
+</html>

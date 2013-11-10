@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Mobile Pong</title>
+
+<script src="http://192.168.1.10:8080/socket.io/socket.io.js"></script>
+<script type="text/javascript">
+  var server = '192.168.1.10';
+  var port = '8080';
+  var socket = io.connect(server + ':' + port);
+  var pong = new Object(); // for pong global variables
+  var socketId = null;
+  
+  socket.on('connect', function(){
+    socketId = socket.socket.sessionid;
+  });
+
+  socket.on('players', function (data) {
+    console.log('players data: ' + JSON.stringify(data));
+    if(data.type == "display"){
+      console.log('this browser is display');
+      document.getElementById("log").innerHTML = "If two players are all ready, press the button.";
+    }
+  });
+
+  socket.on('move', function(data) {
+    playerCommand(data);
+  });
+  
+  var playerCommand = function(data) {
+    for (i in pong.players) {
+      if (pong.players[i].id === data.id) {
+        console.log("should be moving " + data.id + " in direction " + data.direction);
+        pong.players[i].direction = data.direction;
+      }
+    }
+  };
+  
+  var init = function(){
+    pong.canvas = document.getElementById("myCanvas");
+    pong.ctx = pong.canvas.getContext('2d');
+
+    pong.WIDTH = pong.canvas.width;
+    pong.HEIGHT = pong.canvas.height;
+
+    // canvas 
+
+    pong.intervalId;
+    //If you want to move ball fast, make gameSpeed down! 
+    pong.gameSpeed = 30;
+
+    pong.players = [];
+    //sample player object
+    var player1 = {
+      id : "player1",
+      x :  pong.WIDTH / 2,
+      y :  20,
+      w :  75,
+      h :  20,
+      vel : 5,
+      score : 0
+    };
+
+    var player2 = {
+      id : "player2",
+      x :  pong.WIDTH / 2 - 50,
+      y :  pong.HEIGHT - 40,
+      w :  75,
+      h :  20, 
+      vel : 5,
+      score : 0
+    };
+
+    pong.players.push(player1);
+    pong.players.push(player2); 
+
+    //ball object
+    pong.ball = {
+      x : 150,
+      y : 150,
+      dx : 2,
+      dy : 4,
+      radius : 10
+    };
+    
+    // looping animation 
+    var intervalId = setInterval(draw, pong.gameSpeed); 
+  };
+
+  var drawBall = function(x,y,r){
+    pong.ctx.beginPath();
+    pong.ctx.arc(x, y, r, 0, Math.PI*2, true); 
+    pong.ctx.closePath();
+    pong.ctx.fillStyle = "#ffffff";
+    pong.ctx.fill();
+  };
+
+  var updateBall = function(){
+    if (pong.ball.x + pong.ball.dx + pong.ball.radius > pong.WIDTH || pong.ball.x + pong.ball.dx - pong.ball.radius < 0) {
+      pong.ball.dx = -pong.ball.dx;
+    }
+    if (pong.ball.y + pong.ball.dy - pong.ball.radius <= pong.players[0].h) {
+      if (pong.ball.x <= pong.players[0].x || pong.ball.x >= pong.players[0].x + pong.players[0].w) {
+        pong.ball.x = pong.WIDTH/2;
+        pong.ball.y = pong.HEIGHT/2;
+        pong.players[1].score++;
+      }
+      else {
+        pong.ball.dy = -pong.ball.dy;
+      }
+    }  
+
+    if (pong.ball.y + pong.ball.dy + pong.ball.radius > pong.HEIGHT - pong.players[1].h) {
+      if (pong.ball.x <= pong.players[1].x || pong.ball.x >= pong.players[1].x + pong.players[1].w) {
+        pong.ball.x = pong.WIDTH/2;
+        pong.ball.y = pong.HEIGHT/2;
+        pong.players[0].score++;
+      }
+      else {
+        pong.ball.dy = -pong.ball.dy;
+      }
+    }  
+
+    pong.ball.x += pong.ball.dx;
+    pong.ball.y += pong.ball.dy;
+  };
+
+  var updatePaddle = function(data){
+    //console.log("in updatePaddle for " + JSON.stringify(data));
+    for(var i = 0 ; i < pong.players.length ; i ++ ){
+      if(pong.players[i].id == data.id){
+        if(data.direction == "right"){
+          pong.players[i].x += pong.players[i].vel;
+        }
+        else if(data.direction == "left"){
+          pong.players[i].x -= pong.players[i].vel;
+        }
+
+        //Boundary Check! 
+        if(pong.players[i].x <0){    
+          pong.players[i].x = 0;
+        }
+        else if(pong.players[i].x > (pong.WIDTH-pong.players[i].w)){
+          pong.players[i].x = pong.WIDTH-pong.players[i].w;
+        }
+      }
+    }
+  }; 
+
+  var drawBackground = function(){
+    pong.ctx.fillStyle = "#0000FF";
+    pong.ctx.fillRect(0,0,pong.WIDTH,pong.HEIGHT);
+  };
+
+  var drawPlayerPaddle = function(id,x,y,w,h){
+    pong.ctx.beginPath();
+    pong.ctx.rect(x,y,w,h);
+    pong.ctx.closePath();
+    //pong.ctx.fillStyle = "#00ff00";
+    pong.ctx.fill(); 
+    //console.log("draw Rect is working!");
+  }; 
+
+  function draw(){
+    for (i in pong.players) {
+      updatePaddle(pong.players[i]);
+    }
+    
+    updateBall();
+    drawBackground();
+    drawBall( pong.ball.x, pong.ball.y, pong.ball.radius);
+    drawPlayerPaddle( pong.players[0].id, pong.players[0].x, pong.players[0].y, pong.players[0].w, pong.players[0].h);
+    drawPlayerPaddle( pong.players[1].id, pong.players[1].x, pong.players[1].y, pong.players[1].w, pong.players[1].h);
+
+    document.getElementById("log").innerHTML = "Player 1: "+ pong.players[0].score + " |  player 2: "+ pong.players[1].score;
+  }
+
+</script>
+</head>
+<body>
+	<div id="log"></div>
+    <button id="play" onclick="init();">play</button>
+    <br/>
+    <canvas id="myCanvas" width="720" height="550"></canvas>
+</body>
+</html>

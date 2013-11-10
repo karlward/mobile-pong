@@ -1,0 +1,22 @@
+{
+  "name": "mobile-pong",
+  "version": "0.0.1",
+  "description": "Pong controlled by mobile phone movements",
+  "contributors": [ 
+    {
+      "name": "Ilwon Yoon",
+      "email": "iy312@nyu.edu"
+    },
+    {
+      "name": "Jess Jiyoung Jung",
+      "email": "jj1357@nyu.edu"
+    },
+    {
+      "name": "Karl Ward",
+      "email": "karl.ward@nyu.edu"
+    }
+  ],
+  "dependencies" : {
+    "socket.io"   :  "*"
+  }
+}
